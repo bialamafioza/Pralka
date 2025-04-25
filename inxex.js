@@ -55,7 +55,7 @@ async function checkForNewVideos() {
   }
 }
 
-
+});
 
 console.log("[DEBUG] TOKEN Z ENV:", process.env.TOKEN);
 client.login(process.env.TOKEN);
