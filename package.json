@@ -1,13 +1,14 @@
 {
-  "name": "biala_mafioza",
+  "name": "pralkabot",
   "version": "1.0.0",
+  "description": "Bot sprawdzający nowe filmy na kanale YouTube",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^14.0.0",
+    "discord.js": "^14.14.0",
     "rss-parser": "^3.12.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.3.1"
   }
 }
