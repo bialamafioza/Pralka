@@ -1,8 +1,28 @@
+const {
+  Client,
+  GatewayIntentBits,
+  ActivityType,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  EmbedBuilder,
+  PermissionsBitField,
+  ChannelType,
+  ButtonBuilder,
+  ButtonStyle,
+  GatewayIntentBits 
+} = require('discord.js');
 require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
-const Parser = require('rss-parser');
-const parser = new Parser();
-const fs = require('fs');
+const express = require('express');
+const path = require('path');
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.MessageContent
+  ],
+});
 
 const CHANNEL_ID = '1365057818218201161'; // np. '123456789012345678'
 const YOUTUBE_CHANNEL_ID = 'UCfL1XtF6Ok4Cj-nX3gKQ1zQ';
@@ -34,6 +54,8 @@ async function checkForNewVideos() {
     console.error('Błąd podczas sprawdzania filmu:', error);
   }
 }
+
+
 
 console.log("[DEBUG] TOKEN Z ENV:", process.env.TOKEN);
 client.login(process.env.TOKEN);
