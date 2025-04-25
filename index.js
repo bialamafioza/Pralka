@@ -30,20 +30,30 @@ client.once('ready', () => {
 async function checkForNewVideos() {
   try {
     const feed = await parser.parseURL(FEED_URL);
+    console.log("✅ Feed załadowany. Najnowszy film:", feed.items[0]);
+
     const latestVideo = feed.items[0];
 
-    if (!latestVideo) return; // sprawdź, czy coś w ogóle przyszło
+    if (!latestVideo) {
+      console.log("⚠️ Brak filmów w RSS.");
+      return;
+    }
 
     if (latestVideo.id !== lastVideoId) {
+      console.log("📢 Nowy film wykryty:", latestVideo.title);
       lastVideoId = latestVideo.id;
+
       const channel = await client.channels.fetch(CHANNEL_ID);
       if (channel && channel.isTextBased()) {
         channel.send(`🎬 Nowy odcinek od Pralkaaa! @here\n**${latestVideo.title}**\n${latestVideo.link}`);
       }
+    } else {
+      console.log("ℹ️ Brak nowych filmów. Ostatni ID:", latestVideo.id);
     }
   } catch (error) {
     console.error('❌ Błąd podczas sprawdzania filmu:', error);
   }
 }
+
 
 client.login(process.env.TOKEN);
