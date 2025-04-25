@@ -55,5 +55,5 @@ async function checkForNewVideos() {
   }
 }
 
-
+});
 client.login(process.env.TOKEN);
