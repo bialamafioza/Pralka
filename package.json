@@ -1,13 +1,15 @@
 {
   "name": "pralkabot",
   "version": "1.0.0",
+  "description": "Discord bot do obsługi serwera",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
+  "author": "Mafioza",
+  "license": "MIT",
   "dependencies": {
     "discord.js": "^14.0.0",
-    "dotenv": "^16.0.0",
-    "rss-parser": "^3.12.0"
+    "node-fetch": "^3.3.2"
   }
 }
