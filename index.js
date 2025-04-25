@@ -27,9 +27,9 @@ client.once('ready', () => {
   // Ustawienie statusu "Gra w Pralka"
   client.user.setActivity('Pralka', { type: 'PLAYING' });
 
-  checkForNewVideos();
-  setInterval(checkForNewVideos, 5 * 60 * 1000); // Co 5 minut
-});
+checkForNewVideos(); 
+setInterval(checkForNewVideos, 60 * 1000); // Co 1 minutę
+
 
 async function checkForNewVideos() {
   try {
