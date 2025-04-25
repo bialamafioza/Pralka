@@ -1,6 +1,6 @@
 require('dotenv').config();
-const { 
-  Client, 
+const {
+  Client,
   GatewayIntentBits,
 } = require('discord.js');
 const Parser = require('rss-parser');
@@ -16,13 +16,17 @@ const client = new Client({
 });
 
 const CHANNEL_ID = '1365057818218201161';
-const YOUTUBE_CHANNEL_ID = 'UCfL1XtF6Ok4Cj-nX3gKQ1zQ';
+const YOUTUBE_CHANNEL_ID = 'biala_mafioza';
 const FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${YOUTUBE_CHANNEL_ID}`;
 
 let lastVideoId = '';
 
 client.once('ready', () => {
   console.log(`✅ Zalogowano jako ${client.user.tag}`);
+
+  // Ustawienie statusu "Gra w Pralka"
+  client.user.setActivity('Pralka', { type: 'PLAYING' });
+
   checkForNewVideos();
   setInterval(checkForNewVideos, 5 * 60 * 1000); // Co 5 minut
 });
