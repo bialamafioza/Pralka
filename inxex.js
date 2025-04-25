@@ -1,41 +1,38 @@
-import discord
-import feedparser
-import asyncio
+const { Client, GatewayIntentBits } = require('discord.js');
+const Parser = require('rss-parser');
+const parser = new Parser();
+const fs = require('fs');
 
-TOKEN = "TWÓJ_TOKEN_BOTA"
-CHANNEL_ID = 123456789012345678  # ID kanału tekstowego na Discordzie
+const CHANNEL_ID = '1365057818218201161'; // np. '123456789012345678'
+const YOUTUBE_CHANNEL_ID = 'UCfL1XtF6Ok4Cj-nX3gKQ1zQ';
+const FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${YOUTUBE_CHANNEL_ID}`;
 
-RSS_URL = "https://www.youtube.com/feeds/videos.xml?channel_id=UC7De6kAVoF4cTCb-wE6BWRA"
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 
-intents = discord.Intents.default()
-client = discord.Client(intents=intents)
+let lastVideoId = '';
 
-last_video_id = None
+client.once('ready', () => {
+  console.log(`Zalogowano jako ${client.user.tag}`);
+  checkForNewVideos();
+  setInterval(checkForNewVideos, 5 * 60 * 1000); // co 5 minut
+});
 
-async def check_youtube():
-    global last_video_id
-    await client.wait_until_ready()
-    channel = client.get_channel(CHANNEL_ID)
+async function checkForNewVideos() {
+  try {
+    const feed = await parser.parseURL(FEED_URL);
+    const latestVideo = feed.items[0];
 
-    while not client.is_closed():
-        feed = feedparser.parse(RSS_URL)
-        if not feed.entries:
-            await asyncio.sleep(300)
-            continue
+    if (latestVideo.id !== lastVideoId) {
+      lastVideoId = latestVideo.id;
+      const channel = await client.channels.fetch(CHANNEL_ID);
+      if (channel) {
+        channel.send(`🎬 Nowy odcinek od Pralkaaa! @here\n${latestVideo.title}\n${latestVideo.link}`);
+      }
+    }
+  } catch (error) {
+    console.error('Błąd podczas sprawdzania filmu:', error);
+  }
+}
 
-        latest_video = feed.entries[0]
-        video_id = latest_video.yt_videoid
-        video_url = f"https://www.youtusbe.com/watch?v={video_id}"
-
-        if video_id != last_video_id:
-            last_video_id = video_id
-            await channel.send(f"@here 📢 Nowy film od Pralkaaa!\n🎬 {video_url}")
-
-        await asyncio.sleep(300)  # sprawdzaj co 5 minut
-
-@client.event
-async def on_ready():
-    print(f"Zalogowano jako {client.user}")
-
-client.loop.create_task(check_youtube())
-client.run(TOKEN)
+console.log("[DEBUG] TOKEN Z ENV:", process.env.TOKEN);
+client.login(process.env.TOKEN);
