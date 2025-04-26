@@ -16,6 +16,7 @@ const YOUTUBE_CHANNEL_ID = 'UCmYcvnIQGR-_A4A20jYwgWA'; // <-- ID kanału Biała 
 const CHECK_INTERVAL = 30_000; // 30 sekund
 
 let lastVideoId = null;
+let consecutive404 = 0; // Licznik błędów 404 z rzędu
 
 client.once('ready', () => {
     console.log(`✅ Zalogowano jako ${client.user.tag}!`);
@@ -59,10 +60,21 @@ async function checkYoutubeChannel() {
             } else {
                 console.log('ℹ️ Brak nowych filmów.');
             }
+
+            consecutive404 = 0; // Jeśli się udało - resetujemy licznik błędów
         });
 
     } catch (error) {
-        console.error('❌ Błąd przy pobieraniu danych z YouTube:', error.message);
+        if (error.response && error.response.status === 404) {
+            consecutive404++;
+            console.log(`⚠️ Kanał RSS jeszcze niedostępny (404). Próba nr ${consecutive404}`);
+
+            if (consecutive404 >= 3) { // Po 3 próbach zmieniamy status
+                waitingForYoutubeUpdate();
+            }
+        } else {
+            console.error('❌ Błąd przy pobieraniu danych z YouTube:', error.message);
+        }
     }
 }
 
@@ -97,6 +109,18 @@ async function updateBotStatus(latestTitle) {
         console.log(`🛠️ Status zmieniony na "Nowy odcinek: ${latestTitle}"`);
     } catch (error) {
         console.error('❌ Błąd przy aktualizacji statusu:', error.message);
+    }
+}
+
+async function waitingForYoutubeUpdate() {
+    try {
+        await client.user.setPresence({
+            activities: [{ name: 'Czekam na aktualizację YouTube...', type: ActivityType.Watching }],
+            status: 'idle',
+        });
+        console.log('⏳ Zmieniono status: Czekam na aktualizację YouTube...');
+    } catch (error) {
+        console.error('❌ Błąd przy aktualizacji statusu oczekiwania:', error.message);
     }
 }
 
