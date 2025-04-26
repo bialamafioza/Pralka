@@ -1,139 +1,134 @@
-const { Client, GatewayIntentBits, ActivityType, EmbedBuilder } = require('discord.js');
-const axios = require('axios');
-const xml2js = require('xml2js');
-
+const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.GuildMembers,
     ],
+    partials: [Partials.Channel],
 });
 
-// 🛠️ Ustawienia:
-const CHANNEL_ID = 'TWÓJ_DISCORD_CHANNEL_ID'; // <-- Podmień na swój ID kanału
-const YOUTUBE_CHANNEL_ID = 'UCmYcvnIQGR-_A4A20jYwgWA'; // <-- ID kanału Biała Mafioza
-const CHECK_INTERVAL = 30_000; // 30 sekund
-
-let lastVideoId = null;
-let consecutive404 = 0; // Licznik błędów 404
-let noNewVideoCounter = 0; // Licznik braku nowego filmu
+const CHANNEL_ID = '1365057818218201161';
+const ROLE_ID = '1300816249588154411';
 
 client.once('ready', () => {
-    console.log(`✅ Zalogowano jako ${client.user.tag}!`);
-
-    client.user.setPresence({
-        activities: [{ name: 'Pralka', type: ActivityType.Playing }],
-        status: 'online',
-    });
-
-    setInterval(checkYoutubeChannel, CHECK_INTERVAL);
+    console.log(`Zalogowano jako ${client.user.tag}`);
 });
 
-async function checkYoutubeChannel() {
-    try {
-        const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${YOUTUBE_CHANNEL_ID}`;
-        const { data } = await axios.get(rssUrl);
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
 
-        xml2js.parseString(data, (err, result) => {
-            if (err) {
-                console.error('❌ Błąd przy parsowaniu RSS:', err);
-                return;
-            }
-
-            const entries = result?.feed?.entry;
-            if (!entries || entries.length === 0) {
-                console.log('ℹ️ Brak filmów w feedzie.');
-                return;
-            }
-
-            const latestVideo = entries[0];
-            const videoId = latestVideo['yt:videoId'][0];
-            const videoTitle = latestVideo['title'][0];
-            const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-
-            if (videoId !== lastVideoId) {
-                lastVideoId = videoId;
-                sendNewVideoEmbed(videoTitle, videoUrl, thumbnailUrl);
-                updateBotStatus(videoTitle);
-                console.log(`🎬 Nowy film wykryty: ${videoUrl}`);
-                noNewVideoCounter = 0;
-            } else {
-                noNewVideoCounter++;
-                showProgressBar(noNewVideoCounter);
-            }
-
-            consecutive404 = 0; // Reset błędów jeśli udało się pobrać
-        });
-
-    } catch (error) {
-        if (error.response && error.response.status === 404) {
-            consecutive404++;
-            console.log(`⚠️ RSS kanału niedostępny (404). Próba nr ${consecutive404}`);
-            if (consecutive404 >= 3) {
-                waitingForYoutubeUpdate();
-            }
-        } else {
-            console.error('❌ Błąd przy pobieraniu danych z YouTube:', error.message);
-        }
-    }
-}
-
-async function sendNewVideoEmbed(title, videoUrl, thumbnailUrl) {
-    try {
-        const channel = await client.channels.fetch(CHANNEL_ID);
-        if (!channel || !channel.isTextBased()) {
-            console.error('❌ Podany kanał nie jest tekstowy lub nie znaleziono kanału.');
-            return;
+    // Komenda !film
+    if (message.content === '!film' && message.guild) {
+        // Sprawdzanie roli
+        const member = await message.guild.members.fetch(message.author.id);
+        if (!member.roles.cache.has(ROLE_ID)) {
+            return message.reply('Nie masz uprawnień do użycia tej komendy.');
         }
 
-        const embed = new EmbedBuilder()
-            .setColor('#FF0000')
-            .setTitle('🎬 Nowy odcinek na kanale Biała Mafioza!')
-            .setDescription(`📺 **${title}**\n\n🔗 [Kliknij tutaj, aby obejrzeć!]( ${videoUrl} )`)
-            .setImage(thumbnailUrl)
-            .setTimestamp()
-            .setFooter({ text: 'Youtube Bot Pralka', iconURL: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' });
-
-        await channel.send({ content: '@here', embeds: [embed] });
-    } catch (error) {
-        console.error('❌ Błąd przy wysyłaniu embeda:', error.message);
+        try {
+            await message.author.send('Cześć! Napisz, co chcesz dodać na kanał:');
+        } catch (error) {
+            console.error('Nie mogłem wysłać DM:', error);
+            message.reply('Nie mogłem wysłać Ci wiadomości prywatnej. Włącz DM.');
+        }
     }
-}
 
-async function updateBotStatus(latestTitle) {
-    try {
-        await client.user.setPresence({
-            activities: [{ name: `Nowy odcinek: ${latestTitle}`, type: ActivityType.Watching }],
-            status: 'online',
-        });
-        console.log(`🛠️ Status zmieniony na "Nowy odcinek: ${latestTitle}"`);
-    } catch (error) {
-        console.error('❌ Błąd przy aktualizacji statusu:', error.message);
+    // Odbieranie wiadomości na DM
+    if (!message.guild) {
+        try {
+            const channel = await client.channels.fetch(CHANNEL_ID);
+            if (!channel) return message.author.send('Nie mogłem znaleźć kanału.');
+
+            // Wysyłanie wiadomości na kanał
+            const sentMessage = await channel.send(`${message.content}`);
+
+            // Dodawanie reakcji
+            await sentMessage.react('❤️');
+            await sentMessage.react('👑');
+            await sentMessage.react('💪');
+            await sentMessage.react('🔥');
+
+            await message.author.send('Twoja wiadomość została wysłana na kanał i dodano reakcje!');
+        } catch (error) {
+            console.error('Błąd przy wysyłaniu wiadomości:', error);
+            message.author.send('Wystąpił problem przy wysyłaniu wiadomości.');
+        }
     }
+});
+
+// Lista słów bazowych + odmiany
+const bannedWords = [
+  'kurwa', 'kurwo', 'kurwą', 'kurwami', 'kurwie',
+  'idiota', 'idiotka', 'idiotą', 'idioci', 'idiotom', 'idiotami',
+  'debil', 'debile', 'debilem', 'debilka',
+  'pajac', 'głupek', 'głupiec', 'kretyn', 'kretyni',
+  'szmata', 'suka', 'suką', 'suko', 'suki', 'jebać'
+];
+
+// Zamienniki podobnych znaków
+const replacements = {
+  '0': 'o',
+  '1': 'i',
+  '3': 'e',
+  '4': 'a',
+  '5': 's',
+  '7': 't',
+  '@': 'a',
+  '$': 's',
+  '!': 'i',
+  '|': 'i'
+};
+
+// Funkcja czyszczenia i normalizacji wiadomości
+function normalize(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '') // usuń znaki specjalne
+    .split('')
+    .map(char => replacements[char] || char) // zamień podobne litery
+    .join('');
 }
 
-async function waitingForYoutubeUpdate() {
-    try {
-        await client.user.setPresence({
-            activities: [{ name: 'Czekam na aktualizację YouTube...', type: ActivityType.Watching }],
-            status: 'idle',
-        });
-        console.log('⏳ Zmieniono status: Czekam na aktualizację YouTube...');
-    } catch (error) {
-        console.error('❌ Błąd przy aktualizacji statusu oczekiwania:', error.message);
+// Funkcja "fuzzy search" - dopasowuje z małą tolerancją na literówki
+function isFuzzyMatch(message, word) {
+  const normalizedMsg = normalize(message);
+  const normalizedWord = normalize(word);
+
+  let matchCount = 0;
+  let index = 0;
+
+  for (let i = 0; i < normalizedMsg.length; i++) {
+    if (normalizedMsg[i] === normalizedWord[index]) {
+      matchCount++;
+      index++;
     }
+    if (index >= normalizedWord.length) break;
+  }
+
+  const similarity = matchCount / normalizedWord.length;
+  return similarity >= 0.8; // 80% trafienia — pozwalamy na 1 literówkę w krótkim słowie
 }
 
-// 🧠 Funkcja wyświetlająca progresbar
-function showProgressBar(counter) {
-    const blocks = 10;
-    const filled = Math.min(counter, blocks);
-    const bar = '█'.repeat(filled) + '░'.repeat(blocks - filled);
-    const minutes = (counter * (CHECK_INTERVAL / 60000)).toFixed(1);
+client.on('messageCreate', async (message) => {
+  if (message.author.bot || !message.guild) return;
 
-    console.log(`⌛ Czekam na nowy film... [${bar}] ${minutes} min`);
-}
+  try {
+    for (const word of bannedWords) {
+      if (isFuzzyMatch(message.content, word)) {
+        await message.delete();
+        await message.member.timeout(60_000, 'Używanie obraźliwych słów'); // 1 minuta mute
 
+        console.log(`⛔ ${message.author.tag} dostał mute za użycie słowa podobnego do "${word}"`);
+        break; // nie sprawdzaj dalej
+      }
+    }
+  } catch (error) {
+    console.error('❌ Błąd podczas usuwania wiadomości lub mutowania:', error);
+  }
+});
+
+// Token z process.env
 client.login(process.env.TOKEN);
