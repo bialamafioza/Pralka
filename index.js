@@ -11,7 +11,7 @@ const client = new Client({
 });
 
 // 🛠️ Ustawienia:
-const CHANNEL_ID = '1365057818218201161'; // <-- tu wstaw ID kanału na Discordzie
+const CHANNEL_ID = '1365057818218201161'; // <-- Podmień na prawdziwe ID kanału
 const YOUTUBE_CHANNEL_ID = 'UCmYcvnIQGR-_A4A20jYwgWA'; // Twój Channel ID z YouTube
 const CHECK_INTERVAL = 30_000; // 30 sekund
 
@@ -39,8 +39,11 @@ async function checkYoutubeChannel() {
                 return;
             }
 
-            const entries = result.feed.entry;
-            if (!entries || entries.length === 0) return;
+            const entries = result?.feed?.entry;
+            if (!entries || entries.length === 0) {
+                console.log('ℹ️ Brak filmów do sprawdzenia.');
+                return;
+            }
 
             const latestVideo = entries[0];
             const videoId = latestVideo['yt:videoId'][0];
@@ -50,6 +53,8 @@ async function checkYoutubeChannel() {
                 lastVideoId = videoId;
                 sendNewVideoMessage(videoUrl);
                 console.log(`🎥 Nowy film znaleziony: ${videoUrl}`);
+            } else {
+                console.log('ℹ️ Brak nowych filmów.');
             }
         });
 
@@ -59,10 +64,17 @@ async function checkYoutubeChannel() {
 }
 
 async function sendNewVideoMessage(videoUrl) {
-    const channel = await client.channels.fetch(CHANNEL_ID);
-    if (!channel.isTextBased()) return;
+    try {
+        const channel = await client.channels.fetch(CHANNEL_ID);
+        if (!channel || !channel.isTextBased()) {
+            console.error('❌ Podany kanał nie jest tekstowy lub nie znaleziono kanału.');
+            return;
+        }
 
-    await channel.send(`@here 🎬 Nowy odcinek już jest! Sprawdź teraz!\n${videoUrl}\nKanał: https://www.youtube.com/@biala_mafioza`);
+        await channel.send(`@here 🎬 Nowy odcinek już jest! Sprawdź teraz!\n${videoUrl}\nKanał: https://www.youtube.com/@biala_mafioza`);
+    } catch (error) {
+        console.error('❌ Błąd przy wysyłaniu wiadomości:', error.message);
+    }
 }
 
 client.login(process.env.TOKEN);
