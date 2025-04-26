@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits } = require('discord.js');
 const fetch = require('node-fetch');
 const xml2js = require('xml2js');
 const config = require('./config.json');
+require('dotenv').config();
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -40,4 +41,5 @@ client.once('ready', () => {
     setInterval(checkYouTube, 60 * 1000); // co minutę
 });
 
-client.login(config.token);
+console.log("[DEBUG] TOKEN Z ENV:", process.env.TOKEN);
+client.login(process.env.TOKEN);
