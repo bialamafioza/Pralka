@@ -11,12 +11,13 @@ const client = new Client({
 });
 
 // 🛠️ Ustawienia:
-const CHANNEL_ID = '1365057818218201161'; // <-- Podmień na ID kanału
+const CHANNEL_ID = 'TWÓJ_DISCORD_CHANNEL_ID'; // <-- Podmień na swój ID kanału
 const YOUTUBE_CHANNEL_ID = 'UCmYcvnIQGR-_A4A20jYwgWA'; // <-- ID kanału Biała Mafioza
 const CHECK_INTERVAL = 30_000; // 30 sekund
 
 let lastVideoId = null;
-let consecutive404 = 0; // Licznik błędów 404 z rzędu
+let consecutive404 = 0; // Licznik błędów 404
+let noNewVideoCounter = 0; // Licznik braku nowego filmu
 
 client.once('ready', () => {
     console.log(`✅ Zalogowano jako ${client.user.tag}!`);
@@ -42,7 +43,7 @@ async function checkYoutubeChannel() {
 
             const entries = result?.feed?.entry;
             if (!entries || entries.length === 0) {
-                console.log('ℹ️ Brak filmów do sprawdzenia.');
+                console.log('ℹ️ Brak filmów w feedzie.');
                 return;
             }
 
@@ -56,20 +57,21 @@ async function checkYoutubeChannel() {
                 lastVideoId = videoId;
                 sendNewVideoEmbed(videoTitle, videoUrl, thumbnailUrl);
                 updateBotStatus(videoTitle);
-                console.log(`🎥 Nowy film znaleziony: ${videoUrl}`);
+                console.log(`🎬 Nowy film wykryty: ${videoUrl}`);
+                noNewVideoCounter = 0;
             } else {
-                console.log('ℹ️ Brak nowych filmów.');
+                noNewVideoCounter++;
+                showProgressBar(noNewVideoCounter);
             }
 
-            consecutive404 = 0; // Jeśli się udało - resetujemy licznik błędów
+            consecutive404 = 0; // Reset błędów jeśli udało się pobrać
         });
 
     } catch (error) {
         if (error.response && error.response.status === 404) {
             consecutive404++;
-            console.log(`⚠️ Kanał RSS jeszcze niedostępny (404). Próba nr ${consecutive404}`);
-
-            if (consecutive404 >= 3) { // Po 3 próbach zmieniamy status
+            console.log(`⚠️ RSS kanału niedostępny (404). Próba nr ${consecutive404}`);
+            if (consecutive404 >= 3) {
                 waitingForYoutubeUpdate();
             }
         } else {
@@ -122,6 +124,16 @@ async function waitingForYoutubeUpdate() {
     } catch (error) {
         console.error('❌ Błąd przy aktualizacji statusu oczekiwania:', error.message);
     }
+}
+
+// 🧠 Funkcja wyświetlająca progresbar
+function showProgressBar(counter) {
+    const blocks = 10;
+    const filled = Math.min(counter, blocks);
+    const bar = '█'.repeat(filled) + '░'.repeat(blocks - filled);
+    const minutes = (counter * (CHECK_INTERVAL / 60000)).toFixed(1);
+
+    console.log(`⌛ Czekam na nowy film... [${bar}] ${minutes} min`);
 }
 
 client.login(process.env.TOKEN);
