@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, ActivityType, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
 const xml2js = require('xml2js');
 
@@ -11,8 +11,8 @@ const client = new Client({
 });
 
 // 🛠️ Ustawienia:
-const CHANNEL_ID = '1365057818218201161'; // <-- Podmień na prawdziwe ID kanału
-const YOUTUBE_CHANNEL_ID = 'UCmYcvnIQGR-_A4A20jYwgWA'; // Twój Channel ID z YouTube
+const CHANNEL_ID = 'TWÓJ_DISCORD_CHANNEL_ID'; // <-- Podmień na ID kanału
+const YOUTUBE_CHANNEL_ID = 'UCmYcvnIQGR-_A4A20jYwgWA'; // <-- ID kanału Biała Mafioza
 const CHECK_INTERVAL = 30_000; // 30 sekund
 
 let lastVideoId = null;
@@ -47,11 +47,14 @@ async function checkYoutubeChannel() {
 
             const latestVideo = entries[0];
             const videoId = latestVideo['yt:videoId'][0];
+            const videoTitle = latestVideo['title'][0];
             const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
             if (videoId !== lastVideoId) {
                 lastVideoId = videoId;
-                sendNewVideoMessage(videoUrl);
+                sendNewVideoEmbed(videoTitle, videoUrl, thumbnailUrl);
+                updateBotStatus(videoTitle);
                 console.log(`🎥 Nowy film znaleziony: ${videoUrl}`);
             } else {
                 console.log('ℹ️ Brak nowych filmów.');
@@ -63,7 +66,7 @@ async function checkYoutubeChannel() {
     }
 }
 
-async function sendNewVideoMessage(videoUrl) {
+async function sendNewVideoEmbed(title, videoUrl, thumbnailUrl) {
     try {
         const channel = await client.channels.fetch(CHANNEL_ID);
         if (!channel || !channel.isTextBased()) {
@@ -71,9 +74,29 @@ async function sendNewVideoMessage(videoUrl) {
             return;
         }
 
-        await channel.send(`@here 🎬 Nowy odcinek już jest! Sprawdź teraz!\n${videoUrl}\nKanał: https://www.youtube.com/@biala_mafioza`);
+        const embed = new EmbedBuilder()
+            .setColor('#FF0000')
+            .setTitle('🎬 Nowy odcinek na kanale Biała Mafioza!')
+            .setDescription(`📺 **${title}**\n\n🔗 [Kliknij tutaj, aby obejrzeć!]( ${videoUrl} )`)
+            .setImage(thumbnailUrl)
+            .setTimestamp()
+            .setFooter({ text: 'Youtube Bot Pralka', iconURL: 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png' });
+
+        await channel.send({ content: '@here', embeds: [embed] });
     } catch (error) {
-        console.error('❌ Błąd przy wysyłaniu wiadomości:', error.message);
+        console.error('❌ Błąd przy wysyłaniu embeda:', error.message);
+    }
+}
+
+async function updateBotStatus(latestTitle) {
+    try {
+        await client.user.setPresence({
+            activities: [{ name: `Nowy odcinek: ${latestTitle}`, type: ActivityType.Watching }],
+            status: 'online',
+        });
+        console.log(`🛠️ Status zmieniony na "Nowy odcinek: ${latestTitle}"`);
+    } catch (error) {
+        console.error('❌ Błąd przy aktualizacji statusu:', error.message);
     }
 }
 
