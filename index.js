@@ -11,7 +11,7 @@ const client = new Client({
 });
 
 // 🛠️ Ustawienia:
-const CHANNEL_ID = 'TWÓJ_DISCORD_CHANNEL_ID'; // <-- Podmień na ID kanału
+const CHANNEL_ID = '1365057818218201161'; // <-- Podmień na ID kanału
 const YOUTUBE_CHANNEL_ID = 'UCmYcvnIQGR-_A4A20jYwgWA'; // <-- ID kanału Biała Mafioza
 const CHECK_INTERVAL = 30_000; // 30 sekund
 
